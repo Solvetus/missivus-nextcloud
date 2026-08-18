@@ -1,6 +1,6 @@
 .DS_Store
 dist/
-vendor/
+/vendor/
 node_modules/
 *.swp
 .phpunit.result.cache
