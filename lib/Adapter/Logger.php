@@ -23,14 +23,17 @@ class Logger implements TransportLoggerInterface {
 	) {
 	}
 
+	#[\Override]
 	public function error($message): void {
 		$this->logger->error((string)$message, ['app' => Application::APP_ID]);
 	}
 
+	#[\Override]
 	public function warning($message): void {
 		$this->logger->warning((string)$message, ['app' => Application::APP_ID]);
 	}
 
+	#[\Override]
 	public function info($message): void {
 		$this->logger->info((string)$message, ['app' => Application::APP_ID]);
 	}

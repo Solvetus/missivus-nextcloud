@@ -1,0 +1,33 @@
+{
+    "name": "solvetus/missivus-nextcloud",
+    "description": "Development harness for Missivus for Nextcloud. Nothing here ships: the app has zero runtime Composer dependencies and the tarball carries no autoloader beyond Nextcloud's own.",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "config": {
+        "platform": {
+            "php": "8.2.27"
+        },
+        "allow-plugins": false,
+        "sort-packages": true
+    },
+    "require-dev": {
+        "nextcloud/ocp": "^33.0",
+        "phpunit/phpunit": "^10.5",
+        "symfony/mime": "^6.4",
+        "vimeo/psalm": "^6.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "OCA\\Missivus\\": "lib/",
+            "OCA\\Missivus\\Tests\\": "tests/",
+            "Solvetus\\Missivus\\": "lib/Vendor/Solvetus/Missivus/"
+        },
+        "classmap": [
+            "vendor/nextcloud/ocp/OCP"
+        ]
+    },
+    "scripts": {
+        "test": "phpunit --colors=always",
+        "psalm": "psalm --no-cache"
+    }
+}

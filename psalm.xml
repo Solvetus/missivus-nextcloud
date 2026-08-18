@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="4"
+    findUnusedBaselineEntry="false"
+    findUnusedCode="false"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <directory name="lib"/>
+        <ignoreFiles>
+            <directory name="lib/Vendor"/>
+        </ignoreFiles>
+    </projectFiles>
+    <extraFiles>
+        <directory name="lib/Vendor"/>
+    </extraFiles>
+    <stubs>
+        <file name="tests/Support/NextcloudMessage.php"/>
+        <file name="tests/psalm-stubs.php"/>
+    </stubs>
+    <issueHandlers>
+        <!-- Controllers, settings and commands are instantiated by Nextcloud's
+             DI container; the app template does not demand final classes. -->
+        <ClassMustBeFinal errorLevel="suppress"/>
+        <!-- The nextcloud/ocp dev package references private OC\ classes in
+             its own docblocks; not this app's code. -->
+        <UndefinedDocblockClass>
+            <errorLevel type="suppress">
+                <directory name="vendor/nextcloud/ocp"/>
+            </errorLevel>
+        </UndefinedDocblockClass>
+    </issueHandlers>
+</psalm>

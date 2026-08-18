@@ -21,6 +21,7 @@ class AdminSettings implements ISettings {
 	) {
 	}
 
+	#[\Override]
 	public function getForm(): TemplateResponse {
 		Util::addScript(Application::APP_ID, 'admin');
 		Util::addStyle(Application::APP_ID, 'admin');
@@ -45,10 +46,12 @@ class AdminSettings implements ISettings {
 		]);
 	}
 
+	#[\Override]
 	public function getSection(): string {
 		return Application::APP_ID;
 	}
 
+	#[\Override]
 	public function getPriority(): int {
 		return 10;
 	}

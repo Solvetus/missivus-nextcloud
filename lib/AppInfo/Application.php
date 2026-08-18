@@ -52,10 +52,12 @@ class Application extends App implements IBootstrap {
 		});
 	}
 
+	#[\Override]
 	public function register(IRegistrationContext $context): void {
 		// Settings, sections and occ commands are declared in appinfo/info.xml.
 	}
 
+	#[\Override]
 	public function boot(IBootContext $context): void {
 		// The seam. IMailer is a lazy service in the server container and
 		// SimpleContainer::registerService replaces an existing registration,

@@ -21,12 +21,14 @@ class StatusCommand extends Command {
 		parent::__construct();
 	}
 
+	#[\Override]
 	protected function configure(): void {
 		$this
 			->setName('missivus:status')
 			->setDescription('Show the resolved Missivus configuration (never secrets) and the last failure');
 	}
 
+	#[\Override]
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$rows = [
 			'enabled' => $this->config->getBool('enabled') ? 'yes' : 'no',

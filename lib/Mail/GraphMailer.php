@@ -43,22 +43,27 @@ class GraphMailer implements IMailer {
 	) {
 	}
 
+	#[\Override]
 	public function createMessage(): IMessage {
 		return $this->inner->createMessage();
 	}
 
+	#[\Override]
 	public function createAttachment($data = null, $filename = null, $contentType = null): IAttachment {
 		return $this->inner->createAttachment($data, $filename, $contentType);
 	}
 
+	#[\Override]
 	public function createAttachmentFromPath(string $path, $contentType = null): IAttachment {
 		return $this->inner->createAttachmentFromPath($path, $contentType);
 	}
 
+	#[\Override]
 	public function createEMailTemplate(string $emailId, array $data = []): IEMailTemplate {
 		return $this->inner->createEMailTemplate($emailId, $data);
 	}
 
+	#[\Override]
 	public function validateMailAddress(string $email): bool {
 		return $this->inner->validateMailAddress($email);
 	}
@@ -73,6 +78,7 @@ class GraphMailer implements IMailer {
 	 * @return string[] failed recipients
 	 * @throws \Exception
 	 */
+	#[\Override]
 	public function send(IMessage $message): array {
 		if (!$this->config->isEnabled()) {
 			return $this->inner->send($message);

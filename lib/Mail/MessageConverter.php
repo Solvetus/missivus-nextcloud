@@ -84,9 +84,6 @@ class MessageConverter {
 
 		foreach ($symfonyEmail->getAttachments() as $part) {
 			$body = $part->getBody();
-			if (is_resource($body)) {
-				$body = stream_get_contents($body) ?: '';
-			}
 			$name = $part->getFilename() ?? $part->getName() ?? 'attachment';
 			$contentId = '';
 			if ($part->getDisposition() === 'inline') {
@@ -96,7 +93,7 @@ class MessageConverter {
 			}
 			$graphMessage->addAttachment(new Attachment(
 				$name,
-				(string)$body,
+				$body,
 				$part->getContentType(),
 				$contentId
 			));

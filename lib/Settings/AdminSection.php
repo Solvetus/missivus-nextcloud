@@ -21,18 +21,22 @@ class AdminSection implements IIconSection {
 	) {
 	}
 
+	#[\Override]
 	public function getID(): string {
 		return Application::APP_ID;
 	}
 
+	#[\Override]
 	public function getName(): string {
 		return $this->l->t('Missivus');
 	}
 
+	#[\Override]
 	public function getPriority(): int {
 		return 55;
 	}
 
+	#[\Override]
 	public function getIcon(): string {
 		return $this->urlGenerator->imagePath(Application::APP_ID, 'app-dark.svg');
 	}

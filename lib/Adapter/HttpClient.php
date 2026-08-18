@@ -26,10 +26,12 @@ class HttpClient implements HttpClientInterface {
 	) {
 	}
 
+	#[\Override]
 	public function post($url, $body, array $headers = [], $timeout = 30): HttpResponse {
 		return $this->request('post', (string)$url, (string)$body, $headers, (int)$timeout);
 	}
 
+	#[\Override]
 	public function put($url, $body, array $headers = [], $timeout = 60): HttpResponse {
 		return $this->request('put', (string)$url, (string)$body, $headers, (int)$timeout);
 	}

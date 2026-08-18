@@ -31,11 +31,13 @@ class TokenCache implements TokenCacheInterface {
 		return $this->cache ??= $this->cacheFactory->createDistributed(Application::APP_ID);
 	}
 
+	#[\Override]
 	public function get($key) {
 		$value = $this->cache()->get((string)$key);
 		return is_string($value) && $value !== '' ? $value : null;
 	}
 
+	#[\Override]
 	public function set($key, $value, $ttlSeconds): void {
 		$ttl = (int)$ttlSeconds;
 		if ($ttl <= 0) {
@@ -46,6 +48,7 @@ class TokenCache implements TokenCacheInterface {
 		$this->cache()->set((string)$key, (string)$value, $ttl);
 	}
 
+	#[\Override]
 	public function delete($key): void {
 		$this->cache()->remove((string)$key);
 	}

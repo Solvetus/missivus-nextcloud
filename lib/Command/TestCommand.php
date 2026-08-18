@@ -27,6 +27,7 @@ class TestCommand extends Command {
 		parent::__construct();
 	}
 
+	#[\Override]
 	protected function configure(): void {
 		$this
 			->setName('missivus:test')
@@ -34,6 +35,7 @@ class TestCommand extends Command {
 			->addArgument('address', InputArgument::REQUIRED, 'Recipient email address');
 	}
 
+	#[\Override]
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$address = trim((string)$input->getArgument('address'));
 		if (!$this->emailValidator->isValid($address)) {
