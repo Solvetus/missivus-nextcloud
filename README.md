@@ -4,8 +4,8 @@
 
 # Missivus for Nextcloud
 
-**Send Nextcloud's email through Microsoft 365 — without SMTP, without a user account, and without
-an external relay.**
+**Missivus for Nextcloud — send Nextcloud email through Microsoft Graph with application permissions
+and a shared mailbox. No SMTP, no user login. Free, GPLv3.**
 
 Microsoft has retired basic-authentication SMTP for Microsoft 365, and Nextcloud's outgoing mail
 settings only speak SMTP or sendmail. The result is a Nextcloud that quietly sends nothing: no

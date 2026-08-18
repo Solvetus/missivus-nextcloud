@@ -3,7 +3,7 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>missivus</id>
 	<name>Missivus</name>
-	<summary>Send Nextcloud email through Microsoft 365 without SMTP or a user login</summary>
+	<summary>Missivus for Nextcloud — send Nextcloud email through Microsoft Graph with application permissions and a shared mailbox. No SMTP, no user login.</summary>
 	<description><![CDATA[**Send all of Nextcloud's outgoing email — share notifications, password resets, activity digests, admin alerts — through Microsoft Graph using application permissions and one shared mailbox.**
 
 Microsoft has retired basic-authentication SMTP for Microsoft 365, and Nextcloud's outgoing mail settings only speak SMTP or sendmail. The usual answers are an external relay daemon or a mailer that makes a person click "Connect" and then sends as that person. Missivus is neither: OAuth2 client credentials, the `Mail.Send` application permission, and an Exchange application access policy that locks the app to a single shared mailbox. No user account, no license for the mailbox, nothing to click, nothing that breaks when someone leaves.
