@@ -1,0 +1,62 @@
+/**
+ * SPDX-FileCopyrightText: 2026 Solvetus <hello@solvetus.com>
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+#missivus-admin .missivus-field {
+	margin: 12px 0;
+	max-width: 480px;
+}
+#missivus-admin .missivus-field label {
+	display: block;
+	font-weight: bold;
+	margin-bottom: 4px;
+}
+#missivus-admin .missivus-toggle label {
+	display: inline;
+	font-weight: normal;
+}
+#missivus-admin .missivus-field input[type="text"],
+#missivus-admin .missivus-field input[type="password"],
+#missivus-admin .missivus-field select {
+	width: 100%;
+}
+#missivus-admin .missivus-field em {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-style: normal;
+	font-size: 0.9em;
+}
+#missivus-admin .missivus-actions {
+	margin: 16px 0;
+}
+#missivus-admin .missivus-test {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+#missivus-admin .missivus-test input {
+	flex: 1;
+}
+#missivus-admin .missivus-notice {
+	margin: 12px 0;
+	max-width: 640px;
+}
+#missivus-admin .missivus-notice-error,
+#missivus-admin .missivus-result-error {
+	color: var(--color-error, #b3261e);
+}
+#missivus-admin .missivus-result-ok {
+	color: var(--color-success, #2d7b41);
+}
+#missivus-admin #missivus-test-result {
+	margin: 8px 0;
+	max-width: 640px;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+#missivus-admin .missivus-privacy,
+#missivus-admin .missivus-support {
+	margin-top: 24px;
+	color: var(--color-text-maxcontrast);
+	max-width: 640px;
+}
