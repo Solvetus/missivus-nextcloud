@@ -13,7 +13,6 @@ use OCA\Missivus\Adapter\HttpClient;
 use OCA\Missivus\Adapter\Logger;
 use OCA\Missivus\Adapter\TokenCache;
 use OCA\Missivus\Service\ConfigService;
-use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Mail\IMailer;
 
@@ -29,7 +28,6 @@ class MailerFactory {
 		private TokenCache $tokenCache,
 		private Logger $logger,
 		private IEventDispatcher $dispatcher,
-		private Defaults $defaults,
 	) {
 	}
 
@@ -42,7 +40,6 @@ class MailerFactory {
 			$this->tokenCache,
 			$this->logger,
 			$this->dispatcher,
-			$this->defaults,
 		);
 	}
 }

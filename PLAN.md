@@ -199,7 +199,7 @@ The decorator mirrors that exactly, then converts:
 
 | Nextcloud side | Graph side |
 |---|---|
-| `getFrom()` (after core-identical empty-From defaulting) | compared against sender mailbox; **From is always forced** to the configured shared mailbox |
+| `getFrom()` | compared against sender mailbox; **From is always forced** to the configured shared mailbox. Core's fabricated empty-From default is deliberately not reproduced (as in the WordPress port): it would manufacture a warning and a bogus Reply-To on every send. An empty From converts warning-free — the forced sender takes its place either way. |
 | original From (when it differed) | warning log naming both addresses; kept as Reply-To **only if** the message has no explicit Reply-To |
 | `getReplyTo()` | `replyTo` |
 | `getTo()`/`getCc()`/`getBcc()` (`[email => name]` or `[email]` shapes) | `toRecipients`/`ccRecipients`/`bccRecipients` |

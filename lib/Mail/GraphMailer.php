@@ -14,7 +14,6 @@ use OCA\Missivus\Adapter\HttpClient;
 use OCA\Missivus\Adapter\Logger;
 use OCA\Missivus\Adapter\TokenCache;
 use OCA\Missivus\Service\ConfigService;
-use OCP\Defaults;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\Mail\Events\BeforeMessageSent;
 use OCP\Mail\IAttachment;
@@ -41,7 +40,6 @@ class GraphMailer implements IMailer {
 		private TokenCache $tokenCache,
 		private Logger $logger,
 		private IEventDispatcher $dispatcher,
-		private Defaults $defaults,
 	) {
 	}
 
@@ -133,11 +131,10 @@ class GraphMailer implements IMailer {
 		// again — accepted and documented in PLAN.md.
 		$this->dispatcher->dispatchTyped(new BeforeMessageSent($message));
 
-		if (empty($message->getFrom())) {
-			// Same defaulting core's mailer applies before sending.
-			$message->setFrom([\OCP\Util::getDefaultEmailAddress('no-reply') => $this->defaults->getName()]);
-		}
-
+		// Core would fabricate a default From here; on the Graph path the From
+		// is the configured sender mailbox regardless, and reproducing the
+		// fabricated address would only manufacture a bogus warning and
+		// Reply-To on every send. An empty From converts warning-free.
 		$transport = $this->buildTransport();
 		$graphMessage = $this->converter->convert($message, $this->config->get('sender_mailbox'));
 		foreach ($this->converter->getWarnings() as $warning) {
