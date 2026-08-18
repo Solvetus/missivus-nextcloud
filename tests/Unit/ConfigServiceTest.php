@@ -169,4 +169,15 @@ class ConfigServiceTest extends MissivusTestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		$config->set('graph_base_url', 'https://example.com');
 	}
+	public function testTheMasterSwitchIsStoredApartFromCoresAppEnablementFlag(): void {
+		// Core writes appconfig missivus/enabled = "yes" when the *app* is
+		// enabled; the *switch* must neither read nor collide with it.
+		$this->appConfigValues['enabled'] = 'yes';
+		$config = $this->configService();
+		$this->assertFalse($config->isEnabled(), "core's app flag must not flip the switch");
+		$config->set('enabled', '1');
+		$this->assertSame('1', $this->appConfigValues['graph_enabled']);
+		$this->assertSame('yes', $this->appConfigValues['enabled'], "core's flag stays untouched");
+		$this->assertTrue($this->configService()->isEnabled());
+	}
 }

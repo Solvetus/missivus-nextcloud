@@ -15,7 +15,7 @@ use Solvetus\Missivus\Exception\GraphException;
 
 class MailerTest extends MissivusTestCase {
 	public function testWhenSwitchedOffNextcloudsOwnMailerIsUsedWithoutTouchingGraph(): void {
-		$this->configure(['enabled' => '0']);
+		$this->configure(['graph_enabled' => '0']);
 		$mailer = $this->makeMailer();
 		$message = $this->makeMessage();
 		$message->setTo(['someone@example.org']);
@@ -205,7 +205,7 @@ class MailerTest extends MissivusTestCase {
 	}
 
 	public function testSendWithoutFallbackIgnoresTheEnabledSwitchAndTheFallback(): void {
-		$this->configure(['enabled' => '0', 'fallback_to_system' => '1']);
+		$this->configure(['graph_enabled' => '0', 'fallback_to_system' => '1']);
 		$this->queueToken();
 		$this->queueResponse(400, '{"error":{"code":"ErrorInvalidRecipients"}}');
 		$mailer = $this->makeMailer();

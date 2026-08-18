@@ -71,10 +71,15 @@ abstract class MissivusTestCase extends TestCase {
 		$this->innerSends = [];
 	}
 
-	/** A working secret-auth configuration; override pieces per test. */
+	/**
+	 * A working secret-auth configuration; override pieces per test. Note the
+	 * master switch is stored as graph_enabled — "enabled" is core's own
+	 * app-enablement flag (see ConfigService::STORAGE_KEYS). Tests that switch
+	 * Missivus off pass ['graph_enabled' => '0'].
+	 */
 	protected function configure(array $overrides = []): void {
 		$this->appConfigValues = array_merge([
-			'enabled' => '1',
+			'graph_enabled' => '1',
 			'tenant_id' => 'contoso.onmicrosoft.com',
 			'client_id' => '11111111-2222-3333-4444-555555555555',
 			'auth_method' => 'secret',

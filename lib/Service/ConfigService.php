@@ -47,6 +47,18 @@ class ConfigService {
 	public const SECRET_KEYS = ['client_secret', 'certificate_passphrase'];
 	private const BOOL_KEYS = ['enabled', 'save_to_sent', 'fallback_to_system'];
 
+	/**
+	 * Nextcloud core stores every enabled app's state as the appconfig key
+	 * "enabled" ("yes") inside the app's own namespace — so the master switch
+	 * must live under a different storage key, or enabling the *app* would
+	 * flip the *switch*. The public name (UI, config.php) stays "enabled".
+	 */
+	private const STORAGE_KEYS = ['enabled' => 'graph_enabled'];
+
+	private function storageKey(string $key): string {
+		return self::STORAGE_KEYS[$key] ?? $key;
+	}
+
 	public function __construct(
 		private IConfig $config,
 		private IAppConfig $appConfig,
@@ -77,7 +89,7 @@ class ConfigService {
 		if (array_key_exists($key, self::FILE_ONLY_KEYS)) {
 			return $defaults[$key];
 		}
-		$stored = $this->appConfig->getValueString(Application::APP_ID, $key, '', lazy: true);
+		$stored = $this->appConfig->getValueString(Application::APP_ID, $this->storageKey($key), '', lazy: true);
 		return $stored === '' ? $defaults[$key] : $this->normalise($key, $stored);
 	}
 
@@ -120,7 +132,7 @@ class ConfigService {
 		$this->validate($key, $value);
 		$this->appConfig->setValueString(
 			Application::APP_ID,
-			$key,
+			$this->storageKey($key),
 			$value,
 			lazy: true,
 			sensitive: $isSecret,
