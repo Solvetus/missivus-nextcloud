@@ -1,7 +1,7 @@
 /**
  * Missivus admin settings — vanilla JS, no build step.
  *
- * SPDX-FileCopyrightText: 2026 Solvetus <hello@solvetus.com>
+ * SPDX-FileCopyrightText: 2026 Solvetus
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 (function () {

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * SPDX-FileCopyrightText: 2026 Solvetus <hello@solvetus.com>
+ * SPDX-FileCopyrightText: 2026 Solvetus
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * @var array $_ parameters from AdminSettings::getForm()

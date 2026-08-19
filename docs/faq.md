@@ -7,8 +7,9 @@ is much of the point of this design.
 
 ### Why not just configure SMTP?
 
-Microsoft retired basic-authentication SMTP for Microsoft 365, and Nextcloud's outgoing-mail
-settings have no way to obtain OAuth tokens ([nextcloud/server#21595](https://github.com/nextcloud/server/issues/21595),
+Microsoft is retiring basic-authentication SMTP for Microsoft 365 — disabled by default for
+existing tenants from the end of December 2026, unavailable to new tenants from 2027, with final
+removal to follow — and Nextcloud's outgoing-mail settings have no way to obtain OAuth tokens ([nextcloud/server#21595](https://github.com/nextcloud/server/issues/21595),
 open since 2020). The workarounds are an SMTP relay daemon between Nextcloud and Microsoft — one
 more service to run — or tenant-level exceptions Microsoft is actively closing. Missivus skips SMTP
 entirely and talks to the Graph API.

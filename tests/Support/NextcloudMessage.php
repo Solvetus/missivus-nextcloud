@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Email, with the same getter shapes the converter and decorator rely on.
  * Mirrored from lib/private/Mail/Message.php on stable33/stable34.
  *
- * SPDX-FileCopyrightText: 2026 Solvetus <hello@solvetus.com>
+ * SPDX-FileCopyrightText: 2026 Solvetus
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 

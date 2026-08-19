@@ -4,7 +4,7 @@
  * Psalm-only declarations for classes that exist at runtime inside the
  * Nextcloud server but are not part of the nextcloud/ocp dev package.
  *
- * SPDX-FileCopyrightText: 2026 Solvetus <hello@solvetus.com>
+ * SPDX-FileCopyrightText: 2026 Solvetus
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 

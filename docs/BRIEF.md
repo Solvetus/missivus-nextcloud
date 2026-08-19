@@ -15,8 +15,10 @@ sends all Nextcloud outbound email — share notifications, password resets, act
 admin alerts, Talk/Calendar/Mail-app-independent system mail — through Microsoft Graph using
 **application permissions and a shared mailbox**: client credentials, `Mail.Send` application
 permission, Exchange application access policy scoped to ONE shared mailbox; no user login, no
-delegated OAuth, nothing to click. Nextcloud today offers SMTP/sendmail only; Microsoft retired
-basic-auth SMTP. Business model: app free, Solvetus sells installation and support.
+delegated OAuth, nothing to click. Nextcloud today offers SMTP/sendmail only; Microsoft is
+retiring basic-auth SMTP AUTH on a schedule (disabled by default for existing tenants from the end
+of December 2026, unavailable to new tenants from 2027, final removal to follow in H2 2027), not
+already gone. Business model: app free, Solvetus sells installation and support.
 
 ## Due diligence first (before any design)
 

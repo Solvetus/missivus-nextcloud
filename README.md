@@ -7,8 +7,10 @@
 **Missivus for Nextcloud — send Nextcloud email through Microsoft Graph with application permissions
 and a shared mailbox. No SMTP, no user login. Free, GPLv3.**
 
-Microsoft has retired basic-authentication SMTP for Microsoft 365, and Nextcloud's outgoing mail
-settings only speak SMTP or sendmail. The result is a Nextcloud that quietly sends nothing: no
+Microsoft is retiring basic-authentication SMTP for Microsoft 365 — disabled by default for
+existing tenants from the end of December 2026, unavailable to new tenants from 2027, with final
+removal to follow — and Nextcloud's outgoing mail settings only speak SMTP or sendmail. The result
+is a Nextcloud that quietly sends nothing: no
 password resets, no share notifications, no activity digests, no admin alerts — or one that leans
 on a separate relay daemon you now also have to run.
 
@@ -48,7 +50,7 @@ company.
 
 - Nextcloud 33 or 34, PHP 8.2+
 - A Microsoft 365 tenant and an account that can create app registrations and grant admin consent
-- Thirty minutes for the Entra and Exchange setup — [docs/INSTALL.md](docs/INSTALL.md) spells out
+- About an hour for the Entra and Exchange setup — [docs/INSTALL.md](docs/INSTALL.md) spells out
   every click for someone who has never opened Entra
 
 ## Getting started

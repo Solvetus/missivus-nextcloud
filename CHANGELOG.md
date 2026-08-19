@@ -4,6 +4,13 @@ All notable changes to Missivus for Nextcloud. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] — 2026-08-19
+
+### Fixed
+
+- docs: correct SMTP retirement timeline; copyright headers; contact addresses; stale version
+  strings.
+
 ## [0.1.0] — 2026-08-18
 
 First release. The third Missivus platform, after
@@ -59,4 +66,5 @@ fix from its issue #1), behind a Nextcloud-native seam.
   `occ missivus:test` failing loudly with the real `AADSTS90002` body, and a core password-reset
   email provably routed through the seam.
 
+[0.1.1]: https://github.com/Solvetus/missivus-nextcloud/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Solvetus/missivus-nextcloud/releases/tag/v0.1.0

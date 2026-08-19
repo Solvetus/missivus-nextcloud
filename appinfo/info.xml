@@ -6,7 +6,7 @@
 	<summary>Missivus for Nextcloud — send Nextcloud email through Microsoft Graph with application permissions and a shared mailbox. No SMTP, no user login.</summary>
 	<description><![CDATA[**Send all of Nextcloud's outgoing email — share notifications, password resets, activity digests, admin alerts — through Microsoft Graph using application permissions and one shared mailbox.**
 
-Microsoft has retired basic-authentication SMTP for Microsoft 365, and Nextcloud's outgoing mail settings only speak SMTP or sendmail. The usual answers are an external relay daemon or a mailer that makes a person click "Connect" and then sends as that person. Missivus is neither: OAuth2 client credentials, the `Mail.Send` application permission, and an Exchange application access policy that locks the app to a single shared mailbox. No user account, no license for the mailbox, nothing to click, nothing that breaks when someone leaves.
+Microsoft is retiring basic-authentication SMTP for Microsoft 365 — disabled by default for existing tenants from the end of December 2026, unavailable to new tenants from 2027, with final removal to follow — and Nextcloud's outgoing mail settings only speak SMTP or sendmail. The usual answers are an external relay daemon or a mailer that makes a person click "Connect" and then sends as that person. Missivus is neither: OAuth2 client credentials, the `Mail.Send` application permission, and an Exchange application access policy that locks the app to a single shared mailbox. No user account, no license for the mailbox, nothing to click, nothing that breaks when someone leaves.
 
 - Replaces the system mailer for core **and** every app; installing it changes nothing until you switch it on
 - Client secret or certificate credentials; tokens cached in Nextcloud's distributed cache
@@ -18,9 +18,9 @@ Microsoft has retired basic-authentication SMTP for Microsoft 365, and Nextcloud
 **Privacy:** when enabled, this app connects to `login.microsoftonline.com` (to obtain access tokens) and `graph.microsoft.com` (to send mail). No other external service is contacted, and nothing is sent anywhere until you configure and enable it.
 
 Missivus is free and open source (GPLv3). If you would rather not do the Entra and Exchange setup yourself, [Solvetus](https://solvetus.com) offers paid installation and support.]]></description>
-	<version>0.1.0</version>
+	<version>0.1.1</version>
 	<licence>GPL-3.0-or-later</licence>
-	<author mail="hello@solvetus.com" homepage="https://solvetus.com">Solvetus</author>
+	<author mail="support@missivus.com" homepage="https://solvetus.com">Solvetus</author>
 	<namespace>Missivus</namespace>
 	<documentation>
 		<admin>https://github.com/Solvetus/missivus-nextcloud/blob/main/docs/INSTALL.md</admin>

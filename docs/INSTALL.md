@@ -10,7 +10,7 @@ You will need:
 - Administrator access to your Nextcloud, including a shell that can run `occ` for the
   command-line steps (they all have web-UI equivalents).
 
-Set aside about thirty minutes. Nothing here is reversible-by-accident; every step can be undone.
+Set aside about an hour. Nothing here is reversible-by-accident; every step can be undone.
 
 Throughout, replace `example.com` with your own domain and `noreply@example.com` with whatever
 address you want Nextcloud's email to come from.
@@ -290,7 +290,7 @@ Once Missivus is published in the Nextcloud App Store: go to **Apps**, search fo
 
 ```bash
 cd /var/www/nextcloud            # your Nextcloud directory
-tar -xzf /path/to/missivus-0.1.0.tar.gz -C apps/        # or custom_apps/ if you use one
+tar -xzf /path/to/missivus-<version>.tar.gz -C apps/     # or custom_apps/ if you use one
 chown -R www-data:www-data apps/missivus
 sudo -u www-data php occ app:enable missivus
 ```
