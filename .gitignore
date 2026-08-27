@@ -5,3 +5,6 @@ node_modules/
 *.swp
 .phpunit.result.cache
 .phpunit.cache/
+
+# env / wrangler
+.env.local
