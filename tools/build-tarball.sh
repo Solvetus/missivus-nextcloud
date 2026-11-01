@@ -29,7 +29,7 @@ find "$stage" \( -name '*.pem' -o -name '*.key' -o -name '*.pfx' -o -name '*.p12
 
 # The vendored transport must be byte-identical to its upstream when the
 # upstream checkout is present; a drifted tree must never ship.
-upstream="/Users/rds/Projects/Solvetus/missivus-matomo/libs/Solvetus/Missivus"
+upstream="$(cd .. && pwd)/missivus-matomo/libs/Solvetus/Missivus"
 if [ -d "$upstream" ]; then
   diff -r "$upstream" "$stage/missivus/lib/Vendor/Solvetus/Missivus" \
     || { echo "vendored transport differs from upstream — refusing to build" >&2; exit 1; }
