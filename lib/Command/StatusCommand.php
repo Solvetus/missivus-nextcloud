@@ -39,6 +39,7 @@ class StatusCommand extends Command {
 			'certificate_path' => $this->valueOrUnset('certificate_path'),
 			'certificate_passphrase' => $this->secretState('certificate_passphrase'),
 			'sender_mailbox' => $this->valueOrUnset('sender_mailbox'),
+			'from_address' => $this->valueOrUnset('from_address'),
 			'save_to_sent' => $this->config->getBool('save_to_sent') ? 'yes' : 'no',
 			'fallback_to_system' => $this->config->getBool('fallback_to_system') ? 'yes' : 'no',
 		];

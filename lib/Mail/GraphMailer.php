@@ -138,11 +138,16 @@ class GraphMailer implements IMailer {
 		$this->dispatcher->dispatchTyped(new BeforeMessageSent($message));
 
 		// Core would fabricate a default From here; on the Graph path the From
-		// is the configured sender mailbox regardless, and reproducing the
-		// fabricated address would only manufacture a bogus warning and
-		// Reply-To on every send. An empty From converts warning-free.
+		// is the configured From address (the sender mailbox when none is set)
+		// regardless, and reproducing the fabricated address would only
+		// manufacture a bogus warning and Reply-To on every send. An empty From
+		// converts warning-free.
 		$transport = $this->buildTransport();
-		$graphMessage = $this->converter->convert($message, $this->config->get('sender_mailbox'));
+		$graphMessage = $this->converter->convert(
+			$message,
+			$this->config->get('sender_mailbox'),
+			$this->config->get('from_address')
+		);
 		foreach ($this->converter->getWarnings() as $warning) {
 			$this->logger->warning($this->redactor()->redact($warning));
 		}
@@ -185,9 +190,28 @@ class GraphMailer implements IMailer {
 	private function redactThrowable(\Throwable $e): GraphException {
 		$redactor = $this->redactor();
 		if ($e instanceof GraphException) {
-			return $e->redactedWith($redactor);
+			return $this->explainSendAsDenied($e->redactedWith($redactor), $redactor);
 		}
 		return new GraphException($redactor->redact($e->getMessage()), 0, '');
+	}
+
+	/**
+	 * Exchange answers a From address it will not send as with
+	 * ErrorSendAsDenied, which on its own reads like a permissions problem on
+	 * the app. When a From address is configured the admin gets the two real
+	 * causes instead; the redacted Graph body stays attached for diagnosis.
+	 * Without a From address the error means something else and is left alone.
+	 */
+	private function explainSendAsDenied(GraphException $e, Redactor $redactor): GraphException {
+		if (stripos($e->getResponseBody(), 'ErrorSendAsDenied') === false) {
+			return $e;
+		}
+		$explanation = $this->config->getSendAsDeniedExplanation();
+		if ($explanation === null) {
+			return $e;
+		}
+		return (new GraphException($explanation, $e->getHttpStatus(), $e->getResponseBody()))
+			->redactedWith($redactor);
 	}
 
 	/**

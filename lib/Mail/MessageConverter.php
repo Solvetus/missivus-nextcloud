@@ -24,20 +24,27 @@ class MessageConverter {
 
 	/**
 	 * @param NextcloudMessage $message the message as core built it, From already defaulted
-	 * @param string $senderMailbox the configured shared mailbox; From is always forced to it
+	 * @param string $senderMailbox the configured mailbox the Graph call and access policy target
+	 * @param string $fromAddress optional From address (an alias of the mailbox); empty = the mailbox
 	 */
-	public function convert(NextcloudMessage $message, string $senderMailbox): GraphMessage {
+	public function convert(NextcloudMessage $message, string $senderMailbox, string $fromAddress = ''): GraphMessage {
 		$this->warnings = [];
 		$graphMessage = new GraphMessage();
 
+		$effectiveFrom = $fromAddress !== '' ? $fromAddress : $senderMailbox;
+
 		[$requestedFrom, $fromName] = $this->firstAddress($message->getFrom());
-		$graphMessage->setFrom($senderMailbox, $fromName);
+		$graphMessage->setFrom($effectiveFrom, $fromName);
+		// A request for the mailbox itself is the same identity as the alias and
+		// must not be treated as a forced From (or every send would warn when a
+		// From address is configured and core still asks for the mailbox).
 		$fromWasForced = $requestedFrom !== ''
+			&& strcasecmp($requestedFrom, $effectiveFrom) !== 0
 			&& strcasecmp($requestedFrom, $senderMailbox) !== 0;
 		if ($fromWasForced) {
 			$this->warnings[] = sprintf(
-				'Missivus: forcing From to %s; the message asked for %s. Point mail_from_address/mail_domain at the shared mailbox to silence this.',
-				$senderMailbox,
+				'Missivus: forcing From to %s; the message asked for %s. Point mail_from_address/mail_domain at the From address to silence this.',
+				$effectiveFrom,
 				$requestedFrom
 			);
 		}

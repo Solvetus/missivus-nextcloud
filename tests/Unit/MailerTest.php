@@ -60,6 +60,56 @@ class MailerTest extends MissivusTestCase {
 		$this->assertFalse($payload['saveToSentItems']);
 	}
 
+	public function testAFromAddressIsUsedInThePayloadWhileTheMailboxStaysInTheUrl(): void {
+		$this->configure(['from_address' => 'alias@example.com']);
+		$this->queueToken();
+		$this->queueResponse(202, '');
+		$mailer = $this->makeMailer();
+		$message = $this->makeMessage();
+		$message->setTo(['someone@example.org']);
+
+		$this->assertSame([], $mailer->send($message));
+		$this->assertSame(
+			'https://graph.microsoft.com/v1.0/users/noreply%40example.com/sendMail',
+			$this->httpRequests[1]['url'],
+			'the Graph call still targets the mailbox, not the From address'
+		);
+		$payload = json_decode($this->httpRequests[1]['options']['body'], true);
+		$this->assertSame('alias@example.com', $payload['message']['from']['emailAddress']['address']);
+		$this->assertSame([], $this->logged('warning'));
+	}
+
+	public function testAnEmptyFromAddressSendsAsTheMailboxLikeZeroPointOneOne(): void {
+		$this->configure(['from_address' => '']);
+		$this->queueToken();
+		$this->queueResponse(202, '');
+		$mailer = $this->makeMailer();
+		$message = $this->makeMessage();
+		$message->setTo(['someone@example.org']);
+
+		$this->assertSame([], $mailer->send($message));
+		$this->assertSame(
+			'https://graph.microsoft.com/v1.0/users/noreply%40example.com/sendMail',
+			$this->httpRequests[1]['url']
+		);
+		$payload = json_decode($this->httpRequests[1]['options']['body'], true);
+		$this->assertSame('noreply@example.com', $payload['message']['from']['emailAddress']['address']);
+		$this->assertSame([], $this->logged('warning'));
+	}
+
+	public function testARequestedMailboxFromDoesNotWarnWhenAFromAddressIsConfigured(): void {
+		$this->configure(['from_address' => 'alias@example.com']);
+		$this->queueToken();
+		$this->queueResponse(202, '');
+		$mailer = $this->makeMailer();
+		$message = $this->makeMessage();
+		$message->setFrom(['noreply@example.com']);
+		$message->setTo(['someone@example.org']);
+
+		$mailer->send($message);
+		$this->assertSame([], $this->logged('warning'));
+	}
+
 	public function testBeforeMessageSentIsDispatchedOnTheGraphPath(): void {
 		$this->configure();
 		$this->queueToken();
@@ -202,6 +252,71 @@ class MailerTest extends MissivusTestCase {
 		}
 		$this->assertCount(0, $this->httpRequests, 'a configuration problem must not produce traffic');
 		$this->assertCount(1, $this->logged('error'));
+	}
+
+	public function testAnInvalidFromAddressFailsBeforeAnyGraphCall(): void {
+		$this->configure(['from_address' => 'not-an-address']);
+		$mailer = $this->makeMailer();
+		$message = $this->makeMessage();
+		$message->setTo(['someone@example.org']);
+
+		try {
+			$mailer->send($message);
+			$this->fail('expected a GraphException');
+		} catch (GraphException $e) {
+			$this->assertStringContainsString('From address', $e->getMessage());
+		}
+		$this->assertCount(0, $this->httpRequests, 'a configuration problem must not produce traffic');
+	}
+
+	public function testSendAsDeniedWithAFromAddressNamesBothCausesEverywhere(): void {
+		$body = '{"error":{"code":"ErrorSendAsDenied","message":"The user account does not have permission to send as this user."}}';
+		$this->configure(['from_address' => 'alias@example.com']);
+		$this->queueToken();
+		$this->queueResponse(403, $body);
+		$mailer = $this->makeMailer();
+		$message = $this->makeMessage();
+		$message->setTo(['someone@example.org']);
+
+		try {
+			$mailer->send($message);
+			$this->fail('expected a GraphException');
+		} catch (GraphException $e) {
+			$this->assertSame(403, $e->getHttpStatus());
+			foreach (['alias@example.com', 'noreply@example.com', 'not an alias', 'SendFromAliasEnabled', 'user mailbox', 'ErrorSendAsDenied'] as $needle) {
+				$this->assertStringContainsString($needle, $e->getMessage());
+			}
+		}
+		// The settings page (last_error) and the log carry the same explanation.
+		$this->assertStringContainsString('SendFromAliasEnabled', $this->appConfigValues['last_error'] ?? '');
+		$this->assertStringContainsString('SendFromAliasEnabled', $this->logged('error')[0]);
+
+		// The test endpoint and occ missivus:test use sendWithoutFallback().
+		$this->queueResponse(403, $body);
+		try {
+			$mailer->sendWithoutFallback($message);
+			$this->fail('expected a GraphException');
+		} catch (GraphException $e) {
+			$this->assertStringContainsString('SendFromAliasEnabled', $e->getMessage());
+			$this->assertStringContainsString('alias@example.com', $e->getMessage());
+		}
+	}
+
+	public function testSendAsDeniedWithoutAFromAddressKeepsTheRawGraphError(): void {
+		$this->configure();
+		$this->queueToken();
+		$this->queueResponse(403, '{"error":{"code":"ErrorSendAsDenied"}}');
+		$mailer = $this->makeMailer();
+		$message = $this->makeMessage();
+		$message->setTo(['someone@example.org']);
+
+		try {
+			$mailer->send($message);
+			$this->fail('expected a GraphException');
+		} catch (GraphException $e) {
+			$this->assertStringContainsString('ErrorSendAsDenied', $e->getMessage());
+			$this->assertStringNotContainsString('SendFromAliasEnabled', $e->getMessage());
+		}
 	}
 
 	public function testSendWithoutFallbackIgnoresTheEnabledSwitchAndTheFallback(): void {

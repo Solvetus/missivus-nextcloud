@@ -56,7 +56,7 @@ $toggle = static function (string $key, string $label, string $hint = '') use ($
 <div id="missivus-admin" class="section">
 	<h2>Missivus</h2>
 	<p class="settings-hint">
-		<?php p($l->t('Send all of Nextcloud\'s outgoing email through Microsoft Graph using application permissions and one shared mailbox — no SMTP, no user login.')) ?>
+		<?php p($l->t('Send all of Nextcloud\'s outgoing email through Microsoft Graph using application permissions and one mailbox — no SMTP, no user login.')) ?>
 	</p>
 
 	<?php if ($_['lastFailure'] !== null) { ?>
@@ -93,7 +93,8 @@ $toggle = static function (string $key, string $label, string $hint = '') use ($
 			'password',
 			$_['hasCertificatePassphrase'] ? $l->t('Saved — enter a new value to replace it. The stored value is never shown.') : ''
 		); ?>
-		<?php $field('sender_mailbox', $l->t('Sender mailbox'), 'text', $l->t('The shared mailbox every message is sent from. Point mail_from_address and mail_domain at it too.')); ?>
+		<?php $field('sender_mailbox', $l->t('Sender mailbox'), 'text', $l->t('The mailbox used for the Graph call and the one the app\'s permission is scoped to. Point mail_from_address and mail_domain at the From address.')); ?>
+		<?php $field('from_address', $l->t('From address (optional)'), 'text', $l->t('Leave empty to send as the sender mailbox. Set to an alias of the sender mailbox to send with that alias in the From header. Requires SendFromAliasEnabled in Exchange and a user mailbox, not a shared mailbox.')); ?>
 		<?php $toggle('save_to_sent', $l->t('Keep a copy in the mailbox\'s Sent items')); ?>
 		<?php $toggle('fallback_to_system', $l->t('Fall back to Nextcloud\'s own mailer when Graph fails'), $l->t('Off by default. Failures are always logged either way.')); ?>
 

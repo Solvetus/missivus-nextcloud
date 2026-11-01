@@ -23,6 +23,12 @@ class MessageConverterTest extends MissivusTestCase {
 		return [$graphMessage->toGraphMessage(), $converter->getWarnings(), $graphMessage];
 	}
 
+	private function convertWithFrom(NextcloudMessage $message, string $fromAddress): array {
+		$converter = new MessageConverter();
+		$graphMessage = $converter->convert($message, self::SENDER, $fromAddress);
+		return [$graphMessage->toGraphMessage(), $converter->getWarnings(), $graphMessage];
+	}
+
 	public function testEveryRecipientKindIsMappedWithAndWithoutNames(): void {
 		$message = $this->makeMessage();
 		$message->setTo(['to@example.org' => 'To Person', 'plain@example.org']);
@@ -113,6 +119,40 @@ class MessageConverterTest extends MissivusTestCase {
 		$this->assertSame(self::SENDER, $graph['from']['emailAddress']['address']);
 		$this->assertSame([], $warnings);
 		$this->assertArrayNotHasKey('replyTo', $graph);
+	}
+
+	public function testAFromAddressOverridesTheMailboxAsTheSender(): void {
+		$message = $this->makeMessage();
+		$message->setTo(['to@example.org']);
+		[$graph, $warnings] = $this->convertWithFrom($message, 'alias@example.com');
+
+		$this->assertSame('alias@example.com', $graph['from']['emailAddress']['address']);
+		$this->assertSame([], $warnings);
+		$this->assertArrayNotHasKey('replyTo', $graph);
+	}
+
+	public function testARequestedMailboxFromIsNotForcedWhenAFromAddressIsSet(): void {
+		$message = $this->makeMessage();
+		$message->setFrom([self::SENDER]);
+		$message->setTo(['to@example.org']);
+		[$graph, $warnings] = $this->convertWithFrom($message, 'alias@example.com');
+
+		$this->assertSame('alias@example.com', $graph['from']['emailAddress']['address']);
+		$this->assertSame([], $warnings);
+		$this->assertArrayNotHasKey('replyTo', $graph);
+	}
+
+	public function testADifferingFromStillWarnsWithAFromAddressSet(): void {
+		$message = $this->makeMessage();
+		$message->setFrom(['ceo@example.com' => 'The CEO']);
+		$message->setTo(['to@example.org']);
+		[$graph, $warnings] = $this->convertWithFrom($message, 'alias@example.com');
+
+		$this->assertSame('alias@example.com', $graph['from']['emailAddress']['address']);
+		$this->assertSame('The CEO', $graph['from']['emailAddress']['name']);
+		$this->assertSame('ceo@example.com', $graph['replyTo'][0]['emailAddress']['address']);
+		$this->assertCount(1, $warnings);
+		$this->assertStringContainsString('alias@example.com', $warnings[0]);
 	}
 
 	public function testAnAutoSubmittedHeaderIsDroppedWithAWarningNamingIt(): void {

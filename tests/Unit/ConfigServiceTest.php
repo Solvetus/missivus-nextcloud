@@ -93,6 +93,49 @@ class ConfigServiceTest extends MissivusTestCase {
 		$config->set('sender_mailbox', 'not-an-address');
 	}
 
+	public function testTheFromAddressMustBeAnEmailAddress(): void {
+		$config = $this->configService();
+		$config->set('from_address', 'kontakt@example.com');
+		$this->expectException(\InvalidArgumentException::class);
+		$config->set('from_address', 'not-an-address');
+	}
+
+	public function testTheFromAddressCanBeCleared(): void {
+		$config = $this->configService();
+		$config->set('from_address', 'kontakt@example.com');
+		$this->assertSame('kontakt@example.com', $config->get('from_address'));
+
+		$config->set('from_address', '');
+		$this->assertSame('', $config->get('from_address'));
+	}
+
+	public function testAnInvalidFromAddressThatBypassedSetIsCaughtAsAConfigurationProblem(): void {
+		$this->configure();
+
+		// occ config:app:set writes straight to appconfig.
+		$this->appConfigValues['from_address'] = 'not-an-address';
+		$this->assertStringContainsString('From address', (string)$this->configService()->getConfigurationProblem());
+
+		// config.php overrides skip set() too.
+		unset($this->appConfigValues['from_address']);
+		$this->systemValues['missivus'] = ['from_address' => 'also not an address'];
+		$this->assertStringContainsString('From address', (string)$this->configService()->getConfigurationProblem());
+
+		$this->systemValues['missivus'] = ['from_address' => 'kontakt@example.com'];
+		$this->assertNull($this->configService()->getConfigurationProblem());
+	}
+
+	public function testTheSendAsDeniedExplanationNeedsAFromAddressAndNamesBothAddresses(): void {
+		$this->configure();
+		$this->assertNull($this->configService()->getSendAsDeniedExplanation());
+
+		$this->appConfigValues['from_address'] = 'kontakt@example.com';
+		$explanation = (string)$this->configService()->getSendAsDeniedExplanation();
+		$this->assertStringContainsString('kontakt@example.com', $explanation);
+		$this->assertStringContainsString('noreply@example.com', $explanation);
+		$this->assertStringContainsString('SendFromAliasEnabled', $explanation);
+	}
+
 	public function testTheCertificatePathMustBeAbsolute(): void {
 		$config = $this->configService();
 		$config->set('certificate_path', '/etc/ssl/missivus.pem');

@@ -33,6 +33,7 @@ class ConfigService {
 		'certificate_path' => '',
 		'certificate_passphrase' => '',
 		'sender_mailbox' => '',
+		'from_address' => '',
 		'save_to_sent' => '0',
 		'fallback_to_system' => '0',
 	];
@@ -168,6 +169,11 @@ class ConfigService {
 					throw new \InvalidArgumentException($this->l->t('The sender mailbox must be an email address.'));
 				}
 				break;
+			case 'from_address':
+				if (!$this->emailValidator->isValid($value)) {
+					throw new \InvalidArgumentException($this->l->t('The From address must be an email address.'));
+				}
+				break;
 			case 'certificate_path':
 				if (!str_starts_with($value, '/') || str_contains($value, "\0")) {
 					throw new \InvalidArgumentException($this->l->t('The certificate path must be an absolute path.'));
@@ -206,6 +212,11 @@ class ConfigService {
 		if ($this->get('sender_mailbox') === '') {
 			return $this->l->t('The sender mailbox is not set.');
 		}
+		// Values set through occ config:app:set or config.php never pass set().
+		$fromAddress = $this->get('from_address');
+		if ($fromAddress !== '' && !$this->emailValidator->isValid($fromAddress)) {
+			return $this->l->t('The From address is not a valid email address.');
+		}
 		if ($this->get('auth_method') === Credentials::METHOD_CERTIFICATE) {
 			if ($this->get('certificate_path') === '') {
 				return $this->l->t('The certificate path is not set.');
@@ -214,6 +225,22 @@ class ConfigService {
 			return $this->l->t('The client secret is not set.');
 		}
 		return null;
+	}
+
+	/**
+	 * What an admin should read when Exchange answers ErrorSendAsDenied, or
+	 * null when no From address is configured (the error then has another
+	 * cause and the raw Graph error is the better message).
+	 */
+	public function getSendAsDeniedExplanation(): ?string {
+		$fromAddress = $this->get('from_address');
+		if ($fromAddress === '') {
+			return null;
+		}
+		return $this->l->t(
+			'Microsoft refused to send as the From address %1$s from the sender mailbox %2$s (ErrorSendAsDenied). Either %1$s is not an alias of %2$s, or Exchange has SendFromAliasEnabled turned off (Set-OrganizationConfig -SendFromAliasEnabled $true). Alias sending also needs %2$s to be a user mailbox, not a shared mailbox.',
+			[$fromAddress, $this->get('sender_mailbox')]
+		);
 	}
 
 	public function buildCredentials(): Credentials {
