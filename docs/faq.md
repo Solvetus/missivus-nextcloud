@@ -1,9 +1,11 @@
 # Frequently asked questions
 
-### Does the shared mailbox need a licence?
+### Does the mailbox need a licence?
 
-No. Shared mailboxes in Microsoft 365 are free up to 50 GB, and Missivus only sends from it. That
-is much of the point of this design.
+Not if it is a shared mailbox: shared mailboxes in Microsoft 365 are free up to 50 GB, and Missivus
+only sends from it. That is much of the point of this design. A **user** mailbox needs an Exchange
+Online licence, and you only need one if you want to send from an alias of the mailbox (see below) —
+Microsoft does not support sending from an alias of a shared mailbox.
 
 ### Why not just configure SMTP?
 
@@ -35,23 +37,49 @@ naming the permission.
 ### Why does it need Mail.ReadWrite?
 
 Only for attachments over 3 MB (the draft-then-upload path). If Nextcloud never emails big files,
-don't grant it. The application access policy scopes it to the one shared mailbox either way.
+don't grant it. Whichever scoping method you use (next question), it scopes this permission to the
+one mailbox too: with RBAC for Applications you assign the `Application Mail.ReadWrite` role to the
+same mailbox scope, with an access policy the policy covers every permission consented in Entra.
 
-### Is the application access policy really necessary?
+### Do I really have to scope the app to one mailbox?
 
-Yes. Without it, `Mail.Send` lets the app send as **anyone in your tenant**. The policy narrows it
-to the one shared mailbox. Treat it as part of the installation, not hardening you might do later.
+Yes. Without it, `Mail.Send` lets the app send as **anyone in your tenant**. Exchange narrows it to
+the one mailbox. Treat it as part of the installation, not hardening you might do later.
+
+### RBAC for Applications or an Application Access Policy?
+
+RBAC for Applications in Exchange Online is the recommended method: it is Microsoft's current
+mechanism and replaces Application Access Policies. You grant the app the `Mail.Send` role in
+Exchange, already limited to one mailbox, instead of consenting to it tenant-wide in Entra. The
+Application Access Policy is the legacy alternative; it still works and suits tenants that already
+use it. The install guide (Part 5) covers both. Do not combine them for the same app: Exchange adds
+the grants together, so a tenant-wide `Mail.Send` consent in Entra defeats an RBAC scope.
 
 ### Why is the test-email button greyed out?
 
 The **saved** configuration is incomplete — the note above it names the missing part. The test
 sends with what is stored, not what is typed, so save first.
 
-### Emails arrive "from" the shared mailbox even though an app asked for another sender. Why?
+### Emails arrive "from" the mailbox even though an app asked for another sender. Why?
 
-Application-only sending can only send as the mailbox the policy allows. Missivus forces the From,
-keeps the requested address as Reply-To, and logs a warning naming both. Point
-`mail_from_address`/`mail_domain` in `config.php` at the shared mailbox and the warning goes quiet.
+Application-only sending can only send as the mailbox Exchange has scoped the app to. Missivus
+forces the From, keeps the requested address as Reply-To, and logs a warning naming both. Point
+`mail_from_address`/`mail_domain` in `config.php` at the mailbox and the warning goes quiet — or at
+the From address if you set one (below).
+
+### Can I send from an alias of the mailbox instead of the mailbox itself?
+
+Yes, with two conditions. Set **From address** to the alias (for example `kontakt@` as an alias of
+the `ft@` mailbox): the Graph call and the Exchange scope still target the mailbox, only the From
+header changes. Exchange preserves the alias only when the tenant has `SendFromAliasEnabled` turned
+on (`Set-OrganizationConfig -SendFromAliasEnabled $true`) and the mailbox is a **user mailbox** —
+Microsoft does not support sending from an alias of a shared mailbox. Leave the field empty and From
+is forced to the mailbox, as before. Always check the delivered From line, not just the 202
+acknowledgement.
+
+If Exchange refuses the address, Missivus shows a message naming both addresses and the two usual
+causes (the alias is not on that mailbox, or `SendFromAliasEnabled` is off) instead of a bare
+`ErrorSendAsDenied`.
 
 ### What if I install it and do nothing?
 

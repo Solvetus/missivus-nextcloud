@@ -5,7 +5,7 @@
 # Missivus for Nextcloud
 
 **Missivus for Nextcloud — send Nextcloud email through Microsoft Graph with application permissions
-and a shared mailbox. No SMTP, no user login. Free, GPLv3.**
+and one mailbox. No SMTP, no user login. Free, GPLv3.**
 
 Microsoft is retiring basic-authentication SMTP for Microsoft 365 — disabled by default for
 existing tenants from the end of December 2026, unavailable to new tenants from 2027, with final
@@ -15,9 +15,9 @@ password resets, no share notifications, no activity digests, no admin alerts �
 on a separate relay daemon you now also have to run.
 
 Missivus replaces Nextcloud's system mailer with one that talks to the Microsoft Graph API
-directly, using **application permissions and a shared mailbox**: OAuth2 client credentials, the
-`Mail.Send` application permission, and an Exchange application access policy that locks the app to
-one mailbox. No user signs in, nothing is clicked, and nothing breaks when someone leaves the
+directly, using **application permissions and one mailbox**: OAuth2 client credentials, the
+`Mail.Send` application permission, and an Exchange scope (RBAC for Applications, or an application
+access policy) that locks the app to one mailbox. No user signs in, nothing is clicked, and nothing breaks when someone leaves the
 company.
 
 ## Application permissions, not a delegated login
@@ -27,7 +27,7 @@ company.
 | Who sends | A person's account, connected by clicking "Sign in" | The application itself |
 | Setup | A human logs in and stays logged in | Admin creates an app registration once |
 | Someone leaves the company | Mail breaks | Nothing happens |
-| Mailbox licence | Usually a licensed user | A free shared mailbox |
+| Mailbox licence | Usually a licensed user | None for a shared mailbox (a user mailbox only if you want an alias) |
 | Blast radius | Whatever that person can do | One mailbox, enforced by Exchange |
 | Extra services | Sometimes an SMTP relay in between | None |
 
@@ -37,7 +37,8 @@ company.
   notifications, activity digests, admin alerts) and every app that uses Nextcloud's mailer
 - Client secret or certificate credentials; tokens cached in Nextcloud's distributed cache with a
   safety margin
-- Forces From to the shared mailbox (application-only sending cannot do otherwise); a differing
+- Forces From to the configured mailbox — or, with an optional **From address**, an alias of it
+  (requires `SendFromAliasEnabled` in Exchange and a user mailbox, not a shared one); a differing
   requested sender is kept as Reply-To and logged
 - Attachments inline up to Graph's ~3 MB ceiling and via upload sessions above it
 - Optional fallback to Nextcloud's own mailer, **off by default**; every failure is logged at error
@@ -55,9 +56,9 @@ company.
 
 ## Getting started
 
-1. Follow [docs/INSTALL.md](docs/INSTALL.md): app registration → `Mail.Send` application
-   permission → credential → shared mailbox → application access policy → install → configure →
-   test.
+1. Follow [docs/INSTALL.md](docs/INSTALL.md): app registration → credential → mailbox →
+   `Mail.Send` scoped to that one mailbox (RBAC for Applications, or the legacy application access
+   policy) → install → configure → test. Upgrading from 0.1.1? The guide has a section for it.
 2. Questions the guide does not answer are probably in [docs/faq.md](docs/faq.md).
 
 > Missivus is free and open source (GPLv3). If you would rather not do the Entra and Exchange setup

@@ -1,6 +1,6 @@
 # Security review — Missivus for Nextcloud
 
-Standing review, last updated **2026-08-18** (v0.1.0). Scope: this app's code and configuration
+Standing review, last updated **2026-11-01** (v0.2.0). Scope: this app's code and configuration
 surface. The vendored transport (`lib/Vendor/Solvetus/Missivus/`) inherits the review of its
 upstream, [missivus-matomo `docs/SECURITY.md`](https://github.com/Solvetus/missivus-matomo/blob/main/docs/SECURITY.md);
 its findings 1–3a and 12 apply here unchanged and are not repeated in full.
@@ -60,7 +60,7 @@ the configured secret is redacted everywhere.
 
 **9 — Token in the distributed cache.** Access tokens live in Nextcloud's distributed cache
 (Redis/APCu/whatever the admin configured) for their lifetime minus a margin. Anyone who can read
-that cache can send mail as the shared mailbox for up to an hour — but such an attacker can
+that cache can send mail as the configured mailbox for up to an hour — but such an attacker can
 already read Nextcloud's config and secrets, so the cache adds no new trust boundary. Fetching a
 token per message would double Microsoft round-trips for no real gain.
 
@@ -82,6 +82,23 @@ Missivus does not widen it. The replacement delegates message construction and v
 core's own mailer, so no parsing surface is re-implemented. If the boot wiring fails for any
 reason, the error is logged and core's mailer remains untouched — failure degrades to "mail works
 as before", never to "no mail" and never to "mail through an unexpected path".
+
+The optional `from_address` setting changes only the From header. The Graph call and the Exchange
+scope — the RBAC for Applications role assignment, or the Application Access Policy — still target
+`sender_mailbox`, and Exchange enforces that scope per mailbox under either method. What Exchange
+does with a From address that is *not* an alias of that mailbox is not covered by this review and is
+to be verified in a live tenant; Missivus does not rely on it.
+
+When Exchange answers `ErrorSendAsDenied` and a From address is configured, Missivus replaces the
+bare error with a message naming both addresses and the two usual causes (the alias is not on that
+mailbox, or `SendFromAliasEnabled` is off). The redacted Graph response stays attached, and the
+message goes through the same redaction pass as every other failure. `from_address` is validated as
+an email address when saved in the UI and again before every send, so an invalid value set through
+`occ config:app:set` or `config.php` stops the send before any request to Microsoft.
+
+Scoping reminder: Exchange adds RBAC role assignments and Entra-consented permissions together. A
+tenant-wide `Mail.Send` consent in Entra therefore cancels out an RBAC scope for the same app; the
+install guide says not to grant it there when using RBAC for Applications.
 
 ## Not in scope
 

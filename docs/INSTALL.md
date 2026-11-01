@@ -45,6 +45,13 @@ safe — they are identifiers, not secrets, so a note is fine:
 
 ## Part 2 — Grant the permission to send mail
 
+> **Planning to use RBAC for Applications (Method A in Part 5, recommended)?** Then **skip this
+> whole part**: do not grant `Mail.Send` or `Mail.ReadWrite` in Entra. Part 5 grants the same
+> permissions from Exchange, already scoped to one mailbox. A tenant-wide grant made here would be
+> added to the scoped one and cancel it out. Carry on with Part 3.
+>
+> Using the legacy Application Access Policy (Method B)? Follow this part as written.
+
 1. Still inside your app registration, choose **API permissions** in the left-hand menu.
 2. Click **+ Add a permission**.
 3. Choose **Microsoft Graph**.
@@ -136,18 +143,29 @@ path to the PEM instead of a secret.
 
 ---
 
-## Part 4 — Create the shared mailbox
+## Part 4 — Create the mailbox
 
-A shared mailbox needs no licence, which is the point: Nextcloud gets a real, monitorable mailbox
-for free.
+Missivus sends through **one mailbox**. Which kind to create depends on one question: should the
+From address be the mailbox itself, or an **alias** of it?
+
+| You want | Create | Licence |
+| --- | --- | --- |
+| Mail to arrive from the mailbox itself (`noreply@example.com`) | A **shared mailbox** (below) | None — that is the point: Nextcloud gets a real, monitorable mailbox for free |
+| Mail to arrive from an alias of the mailbox (for example `kontakt@example.com`, via the optional **From address** in Part 7) | A **user mailbox** (below) | One Exchange Online licence |
+
+> **Sending from an alias needs a user mailbox.** Microsoft does not support sending from an alias
+> of a *shared* mailbox, so if you set a From address (Part 7) on a shared mailbox it will not work.
+> If you are not sure whether you will want an alias, choose the shared mailbox: you can move to a
+> user mailbox later by changing the **Sender mailbox**.
 
 Make it a **company-wide no-reply address rather than a Nextcloud-specific one** —
 `noreply@example.com` with the display name set to your company name, not `nextcloud@` or the name
 of your server. Recipients see the display name, and "Example Ltd" reads better in an inbox than
 the name of your file server. It also means the next tool that needs to send email can reuse this
-same mailbox: each tool gets **its own Entra app registration**, scoped to this mailbox by the same
-kind of application access policy, so their credentials stay completely separate while the address
-your users see stays consistent.
+same mailbox: each tool gets **its own Entra app registration**, scoped to this mailbox in Exchange,
+so their credentials stay completely separate while the address your users see stays consistent.
+
+**Shared mailbox:**
 
 1. Go to <https://admin.microsoft.com>.
 2. Choose **Teams & groups → Shared mailboxes**.
@@ -156,7 +174,19 @@ your users see stays consistent.
    `noreply@example.com`.
 5. Click **Save changes**. Give it a few minutes to appear everywhere.
 
-Do not add any members. Nobody needs to sign into it.
+**User mailbox (only if you need an alias):**
+
+1. Go to <https://admin.microsoft.com> and choose **Users → Active users → Add a user**.
+2. Set the display name to your company name and the username to `noreply`, assign an Exchange
+   Online licence, and finish the wizard.
+3. Open the new user, choose **Manage username and email**, and add the alias (for example
+   `kontakt@example.com`). It can take a while to appear everywhere.
+4. Block sign-in for the account: nobody needs to sign into it.
+5. In Exchange, turn on `SendFromAliasEnabled` once for the tenant, in the PowerShell window from
+   Part 5: `Set-OrganizationConfig -SendFromAliasEnabled $true`. Without it Exchange does not
+   honour the alias.
+
+For a shared mailbox, do not add any members. Nobody needs to sign into it.
 
 Two optional bits of hardening while you are here. Both are worth doing and **neither changes
 anything for Missivus**, which talks to Graph and needs none of these protocols:
@@ -170,22 +200,27 @@ anything for Missivus**, which talks to Graph and needs none of these protocols:
 
 ## Part 5 — Lock the app to that one mailbox
 
-**Do not skip this.** Until you do, the `Mail.Send` permission you granted in Part 2 lets the app
-send as *anyone* in your tenant. An application access policy narrows it to the single shared
-mailbox, and it is what makes this whole model safe.
+**Do not skip this.** The `Mail.Send` application permission lets an app send as *anyone* in your
+tenant until Exchange is told to narrow it. Both methods below narrow it to the one mailbox from
+Part 4, and that is what makes this whole model safe. Pick **one**:
 
-**How it works, in one paragraph.** Exchange cannot point a policy at a single mailbox — it can
-only point one at a *group*. So you create a security group whose only member is the shared
-mailbox from Part 4, then tell Exchange "this app may only touch mailboxes in that group". The
-group gets an email address of its own (`noreply-apps@yourcompany.onmicrosoft.com` below), but nobody ever sends
-to it or from it; it exists purely so the policy has something to point at. Your shared mailbox
-stays exactly as you created it.
+- **Method A — RBAC for Applications in Exchange Online (recommended).** Microsoft's current
+  mechanism, and the one that replaces Application Access Policies. Instead of consenting to
+  `Mail.Send` for the whole tenant in Entra, you give the app the `Mail.Send` role *in Exchange*,
+  already scoped to the mailbox.
+- **Method B — Application Access Policy (legacy).** The older mechanism. It still works and is what
+  Part 2 as written sets up. Choose it only if you already run it for your other apps.
+
+**Never use both for the same app.** Exchange adds the two grants together, so a tenant-wide
+`Mail.Send` consent in Entra makes an RBAC scope meaningless: the app could still send as anyone.
+With Method A, do **not** grant `Mail.Send` or `Mail.ReadWrite` in Part 2 (and remove them if you
+already did).
 
 You need PowerShell with the Exchange Online module. Windows has PowerShell built in; on macOS run
 `brew install --cask powershell` and then `pwsh`; on Linux see Microsoft's install page. Everything
 below is typed into that PowerShell window, one command at a time.
 
-**Before you start, have two values ready:**
+**Before you start, have these values ready:**
 
 - the value shown in the **Application (client) ID** field on your app's Overview page (Part 1) —
   a long identifier like `1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d`. Below it is written as
@@ -193,12 +228,15 @@ below is typed into that PowerShell window, one command at a time.
 - the address you sign in to <https://admin.microsoft.com> with. This is often **not** your normal
   email — many tenants use a separate admin account such as `admin@yourcompany.onmicrosoft.com`.
   Use that one; below it is written as `admin@yourcompany.onmicrosoft.com`.
+- **Method A only:** the **Object ID of the enterprise application**, found in Entra under
+  **Enterprise applications** (not App registrations) by searching for your app's name. Below it is
+  written as `PASTE-ENTERPRISE-APP-OBJECT-ID`. The App registrations page shows a *different*
+  Object ID; using that one fails.
 
-**How to fill in the commands.** Wherever you see `PASTE-APPLICATION-CLIENT-ID`, replace *only
-those words* with the Application (client) ID and **keep the quotation marks around it** — so
-`-AppId "PASTE-APPLICATION-CLIENT-ID"` becomes
-`-AppId "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"`. Same for `example.com` and the admin address.
-Change nothing else on the line.
+**How to fill in the commands.** Wherever you see a `PASTE-…` placeholder, replace *only those
+words* and **keep the quotation marks around the value** — so `-AppId "PASTE-APPLICATION-CLIENT-ID"`
+becomes `-AppId "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"`. Same for `example.com` and the admin
+address. Change nothing else on the line.
 
 **Step 1 — install the module and sign in** (a browser window opens; sign in with the admin
 account):
@@ -208,7 +246,56 @@ Install-Module -Name ExchangeOnlineManagement -Scope CurrentUser
 Connect-ExchangeOnline -UserPrincipalName admin@yourcompany.onmicrosoft.com
 ```
 
-**Step 2 — create the group.** One line. Its only member is your shared mailbox:
+**Step 2 — scope the app to the mailbox.** Follow Method A *or* Method B.
+
+### Method A — RBAC for Applications (recommended)
+
+Three commands. The first tells Exchange about your app, the second describes "this one mailbox",
+the third gives the app the send role over exactly that mailbox:
+
+```powershell
+New-ServicePrincipal -AppId "PASTE-APPLICATION-CLIENT-ID" -ObjectId "PASTE-ENTERPRISE-APP-OBJECT-ID" -DisplayName "Missivus (Nextcloud)"
+New-ManagementScope -Name "Missivus mailbox" -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'noreply@example.com'"
+New-ManagementRoleAssignment -App "PASTE-APPLICATION-CLIENT-ID" -Role "Application Mail.Send" -CustomResourceScope "Missivus mailbox"
+```
+
+Use the mailbox's **primary** address in the filter — the same address you will enter as **Sender
+mailbox** in Part 7.
+
+**If Nextcloud will email attachments larger than 3 MB**, add the matching role for the draft-and-upload
+path (see Part 2, step 6 — in Method A you grant it here instead of in Entra):
+
+```powershell
+New-ManagementRoleAssignment -App "PASTE-APPLICATION-CLIENT-ID" -Role "Application Mail.ReadWrite" -CustomResourceScope "Missivus mailbox"
+```
+
+Now check it. Two commands; in the second, use any *other* mailbox in your tenant — your own email
+address is fine:
+
+```powershell
+Test-ServicePrincipalAuthorization -Identity "PASTE-APPLICATION-CLIENT-ID" -Resource "noreply@example.com"
+Test-ServicePrincipalAuthorization -Identity "PASTE-APPLICATION-CLIENT-ID" -Resource "you@example.com"
+```
+
+In the first result, the `Application Mail.Send` row must show `InScope : True`. In the second it
+must show `InScope : False`. That test bypasses Exchange's cache and ignores anything granted in
+Entra, so also open your app's **API permissions** page in Entra and confirm `Mail.Send` and
+`Mail.ReadWrite` are **not** listed as granted.
+
+Exchange caches permissions for a running app: a new or changed assignment can take **30 minutes to
+2 hours** to reach an app that has been sending recently. If the real send in Step 3 fails with
+`ErrorAccessDenied` straight after the test says `True`, wait and retry.
+
+### Method B — Application Access Policy (legacy)
+
+**How it works, in one paragraph.** Exchange cannot point a policy at a single mailbox — it can
+only point one at a *group*. So you create a security group whose only member is the mailbox from
+Part 4, then tell Exchange "this app may only touch mailboxes in that group". The group gets an
+email address of its own (`noreply-apps@yourcompany.onmicrosoft.com` below), but nobody ever sends
+to it or from it; it exists purely so the policy has something to point at. Your mailbox stays
+exactly as you created it. (This method needs the Part 2 consent in Entra, exactly as written.)
+
+Create the group. One line. Its only member is your mailbox:
 
 ```powershell
 New-DistributionGroup -Name "NoReply Apps" -Alias noreply-apps -Type Security -Members "noreply@example.com"
@@ -221,16 +308,15 @@ PowerShell prints the group it created. Note the **PrimarySmtpAddress** it shows
 That exact address is what goes in the next command; using the wrong domain gives
 `The identity of the policy scope could not be resolved`.
 
-**Step 3 — lock the app to the group.** One line. Paste the Application (client) ID and the group
-address from Step 2 inside the quotes:
+Lock the app to the group. One line. Paste the Application (client) ID and the group address from
+above inside the quotes:
 
 ```powershell
 New-ApplicationAccessPolicy -AppId "PASTE-APPLICATION-CLIENT-ID" -PolicyScopeGroupId "noreply-apps@yourcompany.onmicrosoft.com" -AccessRight RestrictAccess -Description "Missivus (Nextcloud) may only send as noreply@example.com"
 ```
 
-**Step 4 — wait 5–10 minutes**, then check it took effect. Two commands; paste the same
-Application (client) ID in both. In the second, use any *other* mailbox in your tenant — your own
-email address is fine:
+**Wait 5–10 minutes**, then check it took effect. Two commands; paste the same Application (client)
+ID in both. In the second, use any *other* mailbox in your tenant — your own email address is fine:
 
 ```powershell
 Test-ApplicationAccessPolicy -Identity "noreply@example.com" -AppId "PASTE-APPLICATION-CLIENT-ID"
@@ -241,11 +327,14 @@ The first must show `AccessCheckResult : Granted`. The second must show
 `AccessCheckResult : Denied`. If the second still says **Granted**, the policy has not propagated
 yet: wait and run it again. Do not go further until it says Denied.
 
-**Step 5 — pre-flight: send one real email from PowerShell.** Optional but strongly
-recommended: it proves tenant, app, secret and policy end to end before Nextcloud is involved, so
-any later failure is the app's, not Microsoft's. Fill in the three values (keep the quotes):
-your **Directory (tenant) ID** and **Application (client) ID** from Part 1, and the secret
-**Value** from Part 3. Replace `you@example.com` with your own inbox.
+### Step 3 — pre-flight: send one real email from PowerShell
+
+Optional but strongly recommended: it proves tenant, app, secret and scope end to end before
+Nextcloud is involved, so any later failure is the app's, not Microsoft's. (It uses a client
+secret; if you chose a certificate in Part 3, skip to Step 4 and use **Send test email** in Part 8
+instead.) Fill in the three values (keep the quotes): your **Directory (tenant) ID** and
+**Application (client) ID** from Part 1, and the secret **Value** from Part 3. Replace
+`you@example.com` with your own inbox.
 
 ```powershell
 $TenantId = "PASTE-DIRECTORY-TENANT-ID"
@@ -265,10 +354,13 @@ Invoke-WebRequest -Method Post -Uri "https://graph.microsoft.com/v1.0/users/nore
 ```
 
 `StatusCode 202` and an email in your inbox from your company name = the Microsoft side is
-done. `403` = the policy is still propagating or admin consent is missing; `404` = the mailbox
-has not finished provisioning — wait and retry.
+done. `403` = the scope is still propagating (Method A: up to 2 hours; Method B: 5–10 minutes) or,
+with Method B, admin consent is missing; `404` = the mailbox has not finished provisioning — wait
+and retry.
 
-**Step 6 — clean up and sign out.** The secret was typed into this window, so clear it:
+### Step 4 — clean up and sign out
+
+The secret was typed into this window, so clear it:
 
 ```powershell
 Remove-Variable Secret,tok,body
@@ -278,8 +370,10 @@ Disconnect-ExchangeOnline
 Then close the PowerShell window.
 
 **Adding another tool later** (Uptime Kuma, a CRM, anything that sends as `noreply@`): give it its
-own app registration (Parts 1–3), then run only Step 3 again with that app's Application (client)
-ID. The group from Step 2 is reused; you never create a second one.
+own app registration (Parts 1–3), then repeat only the app-specific part of Step 2 with that app's
+Application (client) ID. Method A: `New-ServicePrincipal` and `New-ManagementRoleAssignment` again,
+reusing the `Missivus mailbox` scope you already created. Method B: only the
+`New-ApplicationAccessPolicy` line, reusing the group.
 
 ---
 
@@ -311,6 +405,7 @@ Go to **Administration settings → Missivus** and fill in:
 | Authentication method | **Client secret** (or **Certificate** if you chose Option B) |
 | Client secret | the **Value** you copied in Part 3 |
 | Sender mailbox | `noreply@example.com` from Part 4 |
+| From address (optional) | leave empty, or an alias of the sender mailbox — needs a **user** mailbox (see below) |
 
 Tick **Send Nextcloud email through Microsoft Graph** and click **Save**. That is all the
 configuration Missivus needs.
@@ -328,6 +423,7 @@ which suits a server you deploy declaratively — add a `missivus` array to `con
   'auth_method' => 'secret',
   'client_secret' => 'the Value you copied in Part 3',
   'sender_mailbox' => 'noreply@example.com',
+  // 'from_address' => 'kontakt@example.com', // optional alias of the sender mailbox
 ],
 ```
 
@@ -345,15 +441,50 @@ the UI, and is never written to Nextcloud's database
 
 ### The From address
 
-Application-only sending can only send as the shared mailbox, so Missivus forces that From address
-regardless of what an app asked for — the requested address is preserved as Reply-To, and a warning
-naming both addresses goes to the log. To keep the log quiet, make Nextcloud's own From address the
-shared mailbox in `config/config.php`:
+Application-only sending can only send as the mailbox Exchange has scoped the app to, so Missivus
+forces the From address to be the one you configured — the **Sender mailbox**, or the optional
+**From address** if you set one. Whatever an app asked for instead is preserved as Reply-To, and a
+warning naming both addresses goes to the log. To keep the log quiet, make Nextcloud's own From
+address match, in `config/config.php`:
 
 ```php
 'mail_from_address' => 'noreply',
 'mail_domain' => 'example.com',
 ```
+
+#### Sending from an alias
+
+If Nextcloud's mail should arrive from a different address than the mailbox — for example an alias
+such as `kontakt@example.com` on the `noreply@example.com` mailbox — set **From address** to the
+alias. The Graph call and the Exchange scope (RBAC role assignment or access policy) still target
+the **Sender mailbox**; only the From header changes. This works only when:
+
+- the tenant has `SendFromAliasEnabled` turned on
+  (`Set-OrganizationConfig -SendFromAliasEnabled $true`), and
+- the mailbox is a **user mailbox** (Part 4). Microsoft does not support sending from an alias of a
+  shared mailbox.
+
+Set it on the settings page, or from the command line (`--lazy` stores it the way the settings page
+does), then check that Missivus sees it:
+
+```bash
+sudo -u www-data php occ config:app:set missivus from_address --lazy --value="kontakt@example.com"
+sudo -u www-data php occ missivus:status
+```
+
+To go back to sending as the mailbox itself, clear it:
+`sudo -u www-data php occ config:app:delete missivus from_address`.
+
+A value that is not an email address is rejected on the settings page. If one gets in another way
+(`occ`, `config.php`), Missivus refuses to send and names the problem, without contacting Microsoft.
+
+If a message asks for the Sender mailbox itself as its From address while a From address is
+configured, Missivus treats the two as the same identity: no warning, no Reply-To.
+
+Point `mail_from_address`/`mail_domain` at the alias to keep the log quiet, then send a test email
+and check the delivered From line — a `202` only means Microsoft accepted the message, not that it
+kept the alias. If Exchange refuses the alias, the error says so and names both causes (the alias is
+not on that mailbox, or `SendFromAliasEnabled` is off); see the table below.
 
 ---
 
@@ -389,9 +520,10 @@ than the test button.
 | `AADSTS7000215: Invalid client secret provided` | The secret is wrong, or you copied the Secret ID instead of the Value | Create a new secret and copy the **Value** column |
 | `AADSTS700027` or `invalid_client` with a certificate | The certificate Nextcloud is using is not the one uploaded to Entra | Re-upload `missivus.crt`; check the certificate path points at the PEM holding **both** the key and the certificate |
 | `AADSTS900023: Specified tenant identifier is not valid` | Wrong tenant ID | Recopy **Directory (tenant) ID** from the Overview page |
-| `ErrorAccessDenied` / `Access is denied` on send | The application access policy does not cover this mailbox, or admin consent was never granted | Re-run `Test-ApplicationAccessPolicy` from Part 5; re-check the green tick in Part 2 |
-| `ErrorAccessDenied` only on large attachments | `Mail.ReadWrite` is missing | Add it in Part 2 and grant admin consent again |
-| `MailboxNotEnabledForRESTAPI` | The sender address is not a real Exchange Online mailbox | Check the shared mailbox exists and the address is spelled right |
+| `ErrorAccessDenied` / `Access is denied` on send | The app's scope does not cover this mailbox, the permission was never granted, or a new assignment has not propagated yet | Method A (RBAC): re-run `Test-ServicePrincipalAuthorization` from Part 5 and allow up to 2 hours for Exchange's cache. Method B (policy): re-run `Test-ApplicationAccessPolicy` from Part 5 and re-check the green tick in Part 2 |
+| "Microsoft refused to send as the From address … (`ErrorSendAsDenied`)" | The **From address** is not an alias of the **Sender mailbox**, or `SendFromAliasEnabled` is off in Exchange, or the mailbox is a shared mailbox | Check the alias is on that mailbox (Part 4); run `Get-OrganizationConfig \| Format-List SendFromAliasEnabled` and, if it says False, `Set-OrganizationConfig -SendFromAliasEnabled $true`; use a **user** mailbox, not a shared one; or clear **From address** to send as the mailbox itself |
+| `ErrorAccessDenied` only on large attachments | `Mail.ReadWrite` is missing | Method A: add the `Application Mail.ReadWrite` role assignment from Part 5. Method B: add it in Part 2 and grant admin consent again |
+| `MailboxNotEnabledForRESTAPI` | The sender address is not a real Exchange Online mailbox | Check the mailbox exists and the address is spelled right |
 | `The mailbox is either inactive, soft-deleted, or is hosted on-premise` | The mailbox has not finished provisioning | Wait fifteen minutes and try again |
 | `certificate file is not readable at …` | File permissions | `chown root:www-data` and `chmod 640` the PEM, and check the path |
 | `the private key … could not be loaded` | Wrong passphrase, or the PEM has no `PRIVATE KEY` block | Rebuild the PEM: `cat missivus.key missivus.crt > missivus.pem` |
@@ -407,6 +539,54 @@ above, add `'certificate_algorithm' => 'RS256'` to the `missivus` array in `conf
 signs with PS256 by default, which is what Microsoft's current documentation specifies; RS256 is
 the older algorithm that Entra also accepts. This should not be necessary — please open an issue if
 it is.
+
+---
+
+## Upgrading from 0.1.1 to 0.2.0
+
+0.2.0 adds one optional setting, **From address** (Part 7). Nothing else about your setup changes:
+
+- **Your settings are kept.** They live in Nextcloud's configuration, not in the app folder, and
+  there is no database migration.
+- **Empty From address = unchanged behaviour.** Until you set it, mail is sent exactly as it was
+  with 0.1.1.
+- You do not need to touch Entra or Exchange to upgrade. You only need to if you want to start
+  sending from an alias (Part 4 and Part 7), or to move from an Application Access Policy to RBAC
+  for Applications (Part 5, Method A), which is optional and independent of this upgrade.
+
+**From the Nextcloud App Store** (once 0.2.0 is published there):
+
+```bash
+cd /var/www/nextcloud            # your Nextcloud directory
+sudo -u www-data php occ app:update missivus
+```
+
+**From a tarball** (a server that installs apps by hand):
+
+```bash
+cd /var/www/nextcloud            # your Nextcloud directory
+# 1. Keep the old version OUTSIDE the apps folder; Nextcloud loads everything inside it.
+sudo mv apps/missivus /root/missivus-0.1.1-backup       # or custom_apps/ if you use one
+# 2. Unpack the new version in its place.
+sudo tar -xzf /path/to/missivus-0.2.0.tar.gz -C apps/    # or custom_apps/
+sudo chown -R www-data:www-data apps/missivus
+# 3. Let Nextcloud notice the new version.
+sudo -u www-data php occ upgrade
+```
+
+Then, for either route:
+
+```bash
+sudo -u www-data php occ app:list | grep missivus      # should show 0.2.0
+sudo -u www-data php occ missivus:status               # your settings, unchanged; from_address shows (not set)
+sudo -u www-data php occ missivus:test you@example.com # a real email through Graph
+```
+
+If you want an alias as the From address, set it now (Part 7) and run the test again, then check
+the From line of the email that arrives.
+
+**Rolling back.** Put the backed-up folder back in `apps/`. Version 0.1.1 does not know the
+`from_address` setting and ignores it, so there is nothing to clear first.
 
 ---
 
